@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCG Troupe Pricing</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; text-align: center; }
+        input, button { padding: 10px; margin: 10px; width: 80%; }
+    </style>
+</head>
+<body>
+    <h2>TCG Troupe Calculator</h2>
+    <input type="number" id="marketPrice" placeholder="Enter Pulse Market Price (M)">
+    <button onclick="calculate()">Calculate List Price</button>
+    <h3 id="result"></h3>
+
+    <script>
+        function calculate() {
+            let M = parseFloat(document.getElementById('marketPrice').value);
+            let base;
+            if (M < 10) base = (M * 1.3) + 1.50;
+            else if (M <= 30) base = (M * 1.25) + 3.50;
+            else base = (M * 1.2) + 3.50;
+
+            // Rounding to nearest 49p or 99p
+            let integerPart = Math.floor(base);
+            let fractionalPart = base - integerPart;
+            let finalPrice = (fractionalPart <= 0.49) ? integerPart + 0.49 : integerPart + 0.99;
+            
+            document.getElementById('result').innerText = "List Price: £" + finalPrice.toFixed(2);
+        }
+    </script>
+</body>
+</html>
+
