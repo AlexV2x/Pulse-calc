@@ -3,34 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCG Troupe Pricing</title>
+    <title>TCG Troupe Engine</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; text-align: center; }
-        input, button { padding: 10px; margin: 10px; width: 80%; }
+        :root {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --border: #333333;
+            --text: #ffffff;
+            --text-dim: #aaaaaa;
+            --accent: #00adb5;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            padding: 16px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .container { width: 100%; max-width: 480px; }
+        h2 { text-align: center; margin-bottom: 20px; font-weight: 600; letter-spacing: 0.5px; }
+        .card { 
+            background: var(--surface); 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            padding: 16px; 
+            margin-bottom: 16px; 
+        }
+        .card-title { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; font-weight: 700; }
+        .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .row label { width: 60px; font-size: 0.85rem; color: var(--text-dim); }
+        input { 
+            background: #2a2a2a; 
+            border: 1px solid var(--border); 
+            color: var(--text); 
+            padding: 10px; 
+            border-radius: 6px; 
+            font-size: 1rem; 
+            flex: 1; 
+            min-width: 0; 
+        }
+        input:focus { border-color: var(--accent); outline: none; }
+        .calc-box input { font-size: 1.4rem; text-align: center; padding: 12px; }
+        .result-display { 
+            text-align: center; 
+            font-size: 2rem; 
+            font-weight: 700; 
+            margin-top: 16px; 
+            color: var(--accent); 
+            min-height: 2.4rem; 
+        }
+        .info-text { text-align: center; font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
     </style>
 </head>
 <body>
-    <h2>TCG Troupe Calculator</h2>
-    <input type="number" id="marketPrice" placeholder="Enter Pulse Market Price (M)">
-    <button onclick="calculate()">Calculate List Price</button>
-    <h3 id="result"></h3>
 
-    <script>
-        function calculate() {
-            let M = parseFloat(document.getElementById('marketPrice').value);
-            let base;
-            if (M < 10) base = (M * 1.3) + 1.50;
-            else if (M <= 30) base = (M * 1.25) + 3.50;
-            else base = (M * 1.2) + 3.50;
+<div class="container">
+    <h2>TCG TROUPE ENGINE</h2>
 
-            // Rounding to nearest 49p or 99p
-            let integerPart = Math.floor(base);
-            let fractionalPart = base - integerPart;
-            let finalPrice = (fractionalPart <= 0.49) ? integerPart + 0.49 : integerPart + 0.99;
-            
-            document.getElementById('result').innerText = "List Price: £" + finalPrice.toFixed(2);
+    <!-- Calculator Input Box -->
+    <div class="card calc-box">
+        <div class="card-title">Market Input</div>
+        <input type="number" id="marketPrice" step="0.01" placeholder="£0.00" oninput="calculatePrice()">
+        <div class="result-display" id="resultDisplay">£0.00</div>
+        <div class="info-text" id="rawPriceDisplay">Base calculation: £0.00</div>
+    </div>
+
+    <!-- Editable Rules Matrix -->
+    <div class="card">
+        <div class="card-title">Tier 1 Parameters (<span id="t1_max_lbl">£10</span>)</div>
+        <div class="row">
+            <label>Max (M):</label>
+            <input type="number" id="t1_max" value="10" step="1" oninput="updateRules()">
+        </div>
+        <div class="row">
+            <label>Mult (X):</label>
+            <input type="number" id="t1_mult" value="1.3" step="0.05" oninput="updateRules()">
+            <label style="width:auto; padding:0 8px;">+ Fee:</label>
+            <input type="number" id="t1_fee" value="1.50" step="0.1" oninput="updateRules()">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Tier 2 Parameters (Mid Range)</div>
+        <div class="row">
+            <label>Max (M):</label>
+            <input type="number" id="t2_max" value="30" step="1" oninput="updateRules()">
+        </div>
+        <div class="row">
+            <label>Mult (X):</label>
+            <input type="number" id="t2_mult" value="1.25" step="0.05" oninput="updateRules()">
+            <label style="width:auto; padding:0 8px;">+ Fee:</label>
+            <input type="number" id="t2_fee" value="3.50" step="0.1" oninput="updateRules()">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Tier 3 Parameters (High Range)</div>
+        <div class="row">
+            <label>Mult (X):</label>
+            <input type="number" id="t3_mult" value="1.2" step="0.05" oninput="updateRules()">
+            <label style="width:auto; padding:0 8px;">+ Fee:</label>
+            <input type="number" id="t3_fee" value="3.50" step="0.1" oninput="updateRules()">
+        </div>
+    </div>
+</div>
+
+<script>
+    // Load saved configurations or fallback to defaults
+    const defaults = {
+        t1_max: 10, t1_mult: 1.3, t1_fee: 1.50,
+        t2_max: 30, t2_mult: 1.25, t2_fee: 3.50,
+        t3_mult: 1.2, t3_fee: 3.50
+    };
+
+    function init() {
+        for (let key in defaults) {
+            let savedValue = localStorage.getItem(key);
+            if (savedValue !== null) {
+                document.getElementById(key).value = savedValue;
+            }
         }
-    </script>
+        updateLabels();
+    }
+
+    function updateLabels() {
+        let t1Max = document.getElementById('t1_max').value;
+        document.getElementById('t1_max_lbl').innerText = "£" + t1Max;
+    }
+
+    function updateRules() {
+        // Save current inputs to localStorage
+        for (let key in defaults) {
+            let val = document.getElementById(key).value;
+            localStorage.setItem(key, val);
+        }
+        updateLabels();
+        calculatePrice(); // Recalculate instantly if a number is present
+    }
+
+    function calculatePrice() {
+        let M = parseFloat(document.getElementById('marketPrice').value);
+        if (isNaN(M) || M <= 0) {
+            document.getElementById('resultDisplay').innerText = "£0.00";
+            document.getElementById('rawPriceDisplay').innerText = "Base calculation: £0.00";
+            return;
+        }
+
+        // Fetch current parameters from UI
+        let t1_max = parseFloat(document.getElementById('t1_max').value);
+        let t1_mult = parseFloat(document.getElementById('t1_mult').value);
+        let t1_fee = parseFloat(document.getElementById('t1_fee').value);
+
+        let t2_max = parseFloat(document.getElementById('t2_max').value);
+        let t2_mult = parseFloat(document.getElementById('t2_mult').value);
+        let t2_fee = parseFloat(document.getElementById('t2_fee').value);
+
+        let t3_mult = parseFloat(document.getElementById('t3_mult').value);
+        let t3_fee = parseFloat(document.getElementById('t3_fee').value);
+
+        let basePrice = 0;
+
+        // Pricing Engine Tiers
+        if (M < t1_max) {
+            basePrice = (M * t1_mult) + t1_fee;
+        } else if (M <= t2_max) {
+            basePrice = (M * t2_mult) + t2_fee;
+        } else {
+            basePrice = (M * t3_mult) + t3_fee;
+        }
+
+        // Rounding Logic to nearest .49 or .99
+        let integerPart = Math.floor(basePrice);
+        let fractionalPart = basePrice - integerPart;
+        let finalPrice = (fractionalPart <= 0.49) ? integerPart + 0.49 : integerPart + 0.99;
+
+        // Handle edge case where base price is clean integer (e.g. exactly 5.00 goes to 5.49)
+        if (fractionalPart === 0) finalPrice = integerPart - 1 + 0.99; 
+        if (finalPrice < 0) finalPrice = 0.49;
+
+        document.getElementById('resultDisplay').innerText = "£" + finalPrice.toFixed(2);
+        document.getElementById('rawPriceDisplay').innerText = "Base calculation: £" + basePrice.toFixed(2);
+    }
+
+    // Run initialization on load
+    window.onload = init;
+</script>
+
 </body>
 </html>
-
