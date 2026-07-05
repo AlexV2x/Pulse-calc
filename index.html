@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCG Troupe Engine</title>
+    <title>TCG Troupe Matrix Engine</title>
     <style>
         :root {
             --bg: #121212;
@@ -34,7 +34,9 @@
         }
         .card-title { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; font-weight: 700; }
         .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-        .row label { width: 60px; font-size: 0.85rem; color: var(--text-dim); }
+        .inputs-grid { display: flex; gap: 8px; width: 100%; }
+        .input-group { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        .input-group span { font-size: 0.75rem; color: var(--text-dim); text-text-align: center; }
         input { 
             background: #2a2a2a; 
             border: 1px solid var(--border); 
@@ -42,20 +44,28 @@
             padding: 10px; 
             border-radius: 6px; 
             font-size: 1rem; 
-            flex: 1; 
-            min-width: 0; 
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
         }
         input:focus { border-color: var(--accent); outline: none; }
-        .calc-box input { font-size: 1.4rem; text-align: center; padding: 12px; }
+        .calc-box input { font-size: 1.6rem; text-align: center; padding: 12px; }
         .result-display { 
             text-align: center; 
-            font-size: 2rem; 
+            font-size: 2.2rem; 
             font-weight: 700; 
             margin-top: 16px; 
             color: var(--accent); 
-            min-height: 2.4rem; 
+            min-height: 2.6rem; 
         }
         .info-text { text-align: center; font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
+        
+        /* Table / Matrix Styles */
+        .matrix-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .matrix-table th { font-size: 0.8rem; text-align: left; padding: 8px; border-bottom: 2px solid var(--border); color: var(--text-dim); text-transform: uppercase;}
+        .matrix-table td { padding: 8px; font-size: 0.95rem; border-bottom: 1px solid var(--border); }
+        .matrix-table tr:last-child td { border-bottom: none; }
+        .tier-badge { display: inline-block; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -63,132 +73,206 @@
 <div class="container">
     <h2>TCG TROUPE ENGINE</h2>
 
-    <!-- Calculator Input Box -->
     <div class="card calc-box">
-        <div class="card-title">Market Input</div>
+        <div class="card-title">Pulse Market Input (M)</div>
         <input type="number" id="marketPrice" step="0.01" placeholder="£0.00" oninput="calculatePrice()">
         <div class="result-display" id="resultDisplay">£0.00</div>
-        <div class="info-text" id="rawPriceDisplay">Base calculation: £0.00</div>
-    </div>
-
-    <!-- Editable Rules Matrix -->
-    <div class="card">
-        <div class="card-title">Tier 1 Parameters (<span id="t1_max_lbl">£10</span>)</div>
-        <div class="row">
-            <label>Max (M):</label>
-            <input type="number" id="t1_max" value="10" step="1" oninput="updateRules()">
-        </div>
-        <div class="row">
-            <label>Mult (X):</label>
-            <input type="number" id="t1_mult" value="1.3" step="0.05" oninput="updateRules()">
-            <label style="width:auto; padding:0 8px;">+ Fee:</label>
-            <input type="number" id="t1_fee" value="1.50" step="0.1" oninput="updateRules()">
-        </div>
+        <div class="info-text" id="rawPriceDisplay">Route: None | Base: £0.00</div>
     </div>
 
     <div class="card">
-        <div class="card-title">Tier 2 Parameters (Mid Range)</div>
+        <div class="card-title" style="color: #ffaa00;">Price Range A Configuration</div>
         <div class="row">
-            <label>Max (M):</label>
-            <input type="number" id="t2_max" value="30" step="1" oninput="updateRules()">
+            <div class="inputs-grid">
+                <div class="input-group"><span>Min Price</span><input type="number" id="t1_min" value="0" oninput="updateRules()"></div>
+                <div class="input-group"><span>Max Price</span><input type="number" id="t1_max" value="9.99" oninput="updateRules()"></div>
+            </div>
         </div>
-        <div class="row">
-            <label>Mult (X):</label>
-            <input type="number" id="t2_mult" value="1.25" step="0.05" oninput="updateRules()">
-            <label style="width:auto; padding:0 8px;">+ Fee:</label>
-            <input type="number" id="t2_fee" value="3.50" step="0.1" oninput="updateRules()">
+        <div class="row" style="margin-top:12px;">
+            <div class="inputs-grid">
+                <div class="input-group"><span>Multiplier</span><input type="number" id="t1_mult" value="1.3" step="0.01" oninput="updateRules()"></div>
+                <div class="input-group"><span>Flat Fee (£)</span><input type="number" id="t1_fee" value="1.50" step="0.01" oninput="updateRules()"></div>
+            </div>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-title">Tier 3 Parameters (High Range)</div>
+        <div class="card-title" style="color: #00ffaa;">Price Range B Configuration</div>
         <div class="row">
-            <label>Mult (X):</label>
-            <input type="number" id="t3_mult" value="1.2" step="0.05" oninput="updateRules()">
-            <label style="width:auto; padding:0 8px;">+ Fee:</label>
-            <input type="number" id="t3_fee" value="3.50" step="0.1" oninput="updateRules()">
+            <div class="inputs-grid">
+                <div class="input-group"><span>Min Price</span><input type="number" id="t2_min" value="10.00" oninput="updateRules()"></div>
+                <div class="input-group"><span>Max Price</span><input type="number" id="t2_max" value="30.00" oninput="updateRules()"></div>
+            </div>
         </div>
+        <div class="row" style="margin-top:12px;">
+            <div class="inputs-grid">
+                <div class="input-group"><span>Multiplier</span><input type="number" id="t2_mult" value="1.25" step="0.01" oninput="updateRules()"></div>
+                <div class="input-group"><span>Flat Fee (£)</span><input type="number" id="t2_fee" value="3.50" step="0.01" oninput="updateRules()"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title" style="color: #a370f7;">Price Range C Configuration</div>
+        <div class="row">
+            <div class="inputs-grid">
+                <div class="input-group"><span>Min Price</span><input type="number" id="t3_min" value="30.01" oninput="updateRules()"></div>
+                <div class="input-group"><span>Max Price</span><input type="number" id="t3_max" value="9999" oninput="updateRules()"></div>
+            </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+            <div class="inputs-grid">
+                <div class="input-group"><span>Multiplier</span><input type="number" id="t3_mult" value="1.2" step="0.01" oninput="updateRules()"></div>
+                <div class="input-group"><span>Flat Fee (£)</span><input type="number" id="t3_fee" value="3.50" step="0.01" oninput="updateRules()"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title" style="color: var(--accent);">Quick Reference Table</div>
+        <table class="matrix-table">
+            <thead>
+                <tr>
+                    <th>Market Range (M)</th>
+                    <th>List Price</th>
+                </tr>
+            </thead>
+            <tbody id="matrixBody">
+                </tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    // Load saved configurations or fallback to defaults
-    const defaults = {
-        t1_max: 10, t1_mult: 1.3, t1_fee: 1.50,
-        t2_max: 30, t2_mult: 1.25, t2_fee: 3.50,
-        t3_mult: 1.2, t3_fee: 3.50
-    };
+    const configKeys = [
+        't1_min', 't1_max', 't1_mult', 't1_fee',
+        't2_min', 't2_max', 't2_mult', 't2_fee',
+        't3_min', 't3_max', 't3_mult', 't3_fee'
+    ];
 
     function init() {
-        for (let key in defaults) {
+        configKeys.forEach(key => {
             let savedValue = localStorage.getItem(key);
             if (savedValue !== null) {
                 document.getElementById(key).value = savedValue;
             }
-        }
-        updateLabels();
-    }
-
-    function updateLabels() {
-        let t1Max = document.getElementById('t1_max').value;
-        document.getElementById('t1_max_lbl').innerText = "£" + t1Max;
+        });
+        calculatePrice();
+        generateReferenceMatrix();
     }
 
     function updateRules() {
-        // Save current inputs to localStorage
-        for (let key in defaults) {
+        configKeys.forEach(key => {
             let val = document.getElementById(key).value;
             localStorage.setItem(key, val);
+        });
+        calculatePrice();
+        generateReferenceMatrix();
+    }
+
+    // Helper math function used by both interactive field and table builder
+    function runCorePricingEngine(M, rA, rB, rC) {
+        let basePrice = 0;
+        let rangeLabel = "None";
+
+        if (M >= rA.min && M <= rA.max) { basePrice = (M * rA.mult) + rA.fee; rangeLabel = "A"; }
+        else if (M >= rB.min && M <= rB.max) { basePrice = (M * rB.mult) + rB.fee; rangeLabel = "B"; }
+        else if (M >= rC.min && M <= rC.max) { basePrice = (M * rC.mult) + rC.fee; rangeLabel = "C"; }
+        else { return null; }
+
+        let integerPart = Math.floor(basePrice);
+        let fractionalPart = basePrice - integerPart;
+        let finalPrice;
+
+        if (fractionalPart === 0) {
+            finalPrice = integerPart - 1 + 0.99;
+        } else if (fractionalPart <= 0.49) {
+            finalPrice = integerPart + 0.49;
+        } else {
+            finalPrice = integerPart + 0.99;
         }
-        updateLabels();
-        calculatePrice(); // Recalculate instantly if a number is present
+
+        if (finalPrice < 0) finalPrice = 0.49;
+        return { finalPrice: finalPrice, basePrice: basePrice, label: rangeLabel };
     }
 
     function calculatePrice() {
         let M = parseFloat(document.getElementById('marketPrice').value);
-        if (isNaN(M) || M <= 0) {
+        if (isNaN(M) || M < 0) {
             document.getElementById('resultDisplay').innerText = "£0.00";
-            document.getElementById('rawPriceDisplay').innerText = "Base calculation: £0.00";
+            document.getElementById('rawPriceDisplay').innerText = "Route: None | Base: £0.00";
             return;
         }
 
-        // Fetch current parameters from UI
-        let t1_max = parseFloat(document.getElementById('t1_max').value);
-        let t1_mult = parseFloat(document.getElementById('t1_mult').value);
-        let t1_fee = parseFloat(document.getElementById('t1_fee').value);
+        let rA = { min: parseFloat(document.getElementById('t1_min').value), max: parseFloat(document.getElementById('t1_max').value), mult: parseFloat(document.getElementById('t1_mult').value), fee: parseFloat(document.getElementById('t1_fee').value) };
+        let rB = { min: parseFloat(document.getElementById('t2_min').value), max: parseFloat(document.getElementById('t2_max').value), mult: parseFloat(document.getElementById('t2_mult').value), fee: parseFloat(document.getElementById('t2_fee').value) };
+        let rC = { min: parseFloat(document.getElementById('t3_min').value), max: parseFloat(document.getElementById('t3_max').value), mult: parseFloat(document.getElementById('t3_mult').value), fee: parseFloat(document.getElementById('t3_fee').value) };
 
-        let t2_max = parseFloat(document.getElementById('t2_max').value);
-        let t2_mult = parseFloat(document.getElementById('t2_mult').value);
-        let t2_fee = parseFloat(document.getElementById('t2_fee').value);
+        let result = runCorePricingEngine(M, rA, rB, rC);
 
-        let t3_mult = parseFloat(document.getElementById('t3_mult').value);
-        let t3_fee = parseFloat(document.getElementById('t3_fee').value);
-
-        let basePrice = 0;
-
-        // Pricing Engine Tiers
-        if (M < t1_max) {
-            basePrice = (M * t1_mult) + t1_fee;
-        } else if (M <= t2_max) {
-            basePrice = (M * t2_mult) + t2_fee;
-        } else {
-            basePrice = (M * t3_mult) + t3_fee;
+        if (!result) {
+            document.getElementById('resultDisplay').innerText = "Out of Range";
+            document.getElementById('rawPriceDisplay').innerText = "M doesn't fit defined parameters.";
+            return;
         }
 
-        // Rounding Logic to nearest .49 or .99
-        let integerPart = Math.floor(basePrice);
-        let fractionalPart = basePrice - integerPart;
-        let finalPrice = (fractionalPart <= 0.49) ? integerPart + 0.49 : integerPart + 0.99;
-
-        // Handle edge case where base price is clean integer (e.g. exactly 5.00 goes to 5.49)
-        if (fractionalPart === 0) finalPrice = integerPart - 1 + 0.99; 
-        if (finalPrice < 0) finalPrice = 0.49;
-
-        document.getElementById('resultDisplay').innerText = "£" + finalPrice.toFixed(2);
-        document.getElementById('rawPriceDisplay').innerText = "Base calculation: £" + basePrice.toFixed(2);
+        document.getElementById('resultDisplay').innerText = "£" + result.finalPrice.toFixed(2);
+        document.getElementById('rawPriceDisplay').innerText = "Route: Range " + result.label + " | Base: £" + result.basePrice.toFixed(2);
     }
 
-    // Run initialization on load
+    function generateReferenceMatrix() {
+        let rA = { min: parseFloat(document.getElementById('t1_min').value), max: parseFloat(document.getElementById('t1_max').value), mult: parseFloat(document.getElementById('t1_mult').value), fee: parseFloat(document.getElementById('t1_fee').value) };
+        let rB = { min: parseFloat(document.getElementById('t2_min').value), max: parseFloat(document.getElementById('t2_max').value), mult: parseFloat(document.getElementById('t2_mult').value), fee: parseFloat(document.getElementById('t2_fee').value) };
+        let rC = { min: parseFloat(document.getElementById('t3_min').value), max: parseFloat(document.getElementById('t3_max').value), mult: parseFloat(document.getElementById('t3_mult').value), fee: parseFloat(document.getElementById('t3_fee').value) };
+
+        let tbody = document.getElementById('matrixBody');
+        tbody.innerHTML = ""; // Clear existing rows
+
+        let currentTargetPrice = null;
+        let rangeStart = null;
+        let maxSearchLimit = Math.min(rC.min + 20, 50); // Scans from 0.00 up to £50.00 to keep mobile layout lightweight
+
+        // High-resolution interval scanner (1p steps) to catch precise turning points
+        for (let m = 0; m <= maxSearchLimit * 100; m++) {
+            let marketVal = m / 100;
+            let calc = runCorePricingEngine(marketVal, rA, rB, rC);
+            
+            if (!calc) continue;
+
+            if (currentTargetPrice === null) {
+                currentTargetPrice = calc.finalPrice;
+                rangeStart = marketVal;
+            } else if (Math.abs(calc.finalPrice - currentTargetPrice) > 0.001) {
+                // Turning point detected! Commit the previous range block
+                let rangeEnd = marketVal - 0.01;
+                appendMatrixRow(rangeStart, rangeEnd, currentTargetPrice);
+                
+                // Initialize the next block
+                currentTargetPrice = calc.finalPrice;
+                rangeStart = marketVal;
+            }
+        }
+        // Commit the open trailing range group
+        if (currentTargetPrice !== null) {
+            appendMatrixRow(rangeStart, maxSearchLimit, currentTargetPrice, true);
+        }
+    }
+
+    function appendMatrixRow(start, end, target, isTrailing = false) {
+        let tbody = document.getElementById('matrixBody');
+        let tr = document.createElement('tr');
+        
+        let rangeText = isTrailing 
+            ? "£" + start.toFixed(2) + " +" 
+            : "£" + start.toFixed(2) + " - £" + end.toFixed(2);
+            
+        tr.innerHTML = `
+            <td style="font-family: monospace; font-weight: 500;">${rangeText}</td>
+            <td style="color: var(--accent); font-weight: 700; text-align: right; padding-right: 16px;">£${target.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+    }
+
     window.onload = init;
 </script>
 
